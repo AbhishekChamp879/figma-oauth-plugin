@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Google OAuth Plugin</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Login View -->
+    <div id="login-view" class="view">
+      <div class="header">
+        <h1>Welcome</h1>
+        <p>Sign in with your Google account to continue</p>
+      </div>
+      
+      <button id="login-btn" class="btn btn-primary">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
+          <path d="M9.003 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.96v2.332C2.44 15.983 5.485 18 9.003 18z" fill="#34A853"/>
+          <path d="M3.964 10.712c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.96H.957C.347 6.175 0 7.55 0 9.002c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+          <path d="M9.003 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.464.891 11.426 0 9.003 0 5.485 0 2.44 2.017.96 4.958L3.967 7.29c.708-2.127 2.692-3.71 5.036-3.71z" fill="#EA4335"/>
+        </svg>
+        Sign in with Google
+      </button>
+      
+      <div id="error-message" class="error-message"></div>
+    </div>
+    
+    <!-- Loading View -->
+    <div id="loading-view" class="view hidden">
+      <div class="loader"></div>
+      <p class="loading-text">Waiting for authentication...</p>
+      <p class="loading-subtext">Please complete the login in your browser</p>
+    </div>
+    
+    <!-- Authenticated View -->
+    <div id="authenticated-view" class="view hidden">
+      <div class="header">
+        <h1>Welcome Back!</h1>
+      </div>
+      
+      <div class="user-profile">
+        <img id="user-avatar" class="avatar" src="" alt="User avatar">
+        <div class="user-info">
+          <h2 id="user-name"></h2>
+          <p id="user-email"></p>
+        </div>
+      </div>
+      
+      <div class="actions">
+        <button id="logout-btn" class="btn btn-secondary">Logout</button>
+      </div>
+      
+      <div class="info-box">
+        <p>✓ You are successfully authenticated</p>
+        <p>Your session is secure and will persist across plugin sessions</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const BACKEND_URL = 'http://localhost:3000'; // Change to your production URL
+    
+    let currentView = 'login';
+    
+    // DOM Elements
+    const loginView = document.getElementById('login-view');
+    const loadingView = document.getElementById('loading-view');
+    const authenticatedView = document.getElementById('authenticated-view');
+    const loginBtn = document.getElementById('login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const errorMessage = document.getElementById('error-message');
+    const userAvatar = document.getElementById('user-avatar');
+    const userName = document.getElementById('user-name');
+    const userEmail = document.getElementById('user-email');
+    
+    // Utility functions
+    function generateSessionId() {
+      return Math.random().toString(36).substring(2) + Date.now().toString(36);
+    }
+    
+    function showView(view) {
+      loginView.classList.add('hidden');
+      loadingView.classList.add('hidden');
+      authenticatedView.classList.add('hidden');
+      
+      if (view === 'login') {
+        loginView.classList.remove('hidden');
+      } else if (view === 'loading') {
+        loadingView.classList.remove('hidden');
+      } else if (view === 'authenticated') {
+        authenticatedView.classList.remove('hidden');
+      }
+      
+      currentView = view;
+    }
+    
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.style.display = 'block';
+      setTimeout(() => {
+        errorMessage.style.display = 'none';
+      }, 5000);
+    }
+    
+    function displayUserInfo(userInfo) {
+      userName.textContent = userInfo.displayName || userInfo.name || 'User';
+      userEmail.textContent = userInfo.email || '';
+      
+      if (userInfo.picture || userInfo.photo) {
+        userAvatar.src = userInfo.picture || userInfo.photo;
+      } else {
+        // Default avatar with initials
+        const initials = (userInfo.displayName || userInfo.name || 'U').charAt(0).toUpperCase();
+        userAvatar.src = `data:image/svg+xml,${encodeURIComponent(`
+          <svg width="80" height="80" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="40" cy="40" r="40" fill="#4285F4"/>
+            <text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="white" font-size="32" font-family="Arial">${initials}</text>
+          </svg>
+        `)}`;
+      }
+    }
+    
+    // Event Listeners
+    loginBtn.addEventListener('click', () => {
+      const sessionId = generateSessionId();
+      const authURL = `${BACKEND_URL}/auth/google?session=${sessionId}`;
+      
+      // Open OAuth flow in new window
+      window.open(authURL, '_blank', 'width=500,height=600');
+      
+      // Switch to loading view
+      showView('loading');
+      
+      // Start polling in the main plugin code
+      parent.postMessage({ 
+        pluginMessage: { 
+          type: 'startPolling', 
+          sessionId 
+        } 
+      }, '*');
+    });
+    
+    logoutBtn.addEventListener('click', () => {
+      parent.postMessage({ 
+        pluginMessage: { 
+          type: 'logout' 
+        } 
+      }, '*');
+    });
+    
+    // Handle messages from plugin code
+    window.onmessage = (event) => {
+      const msg = event.data.pluginMessage;
+      
+      if (msg.type === 'loginSuccess') {
+        showView('authenticated');
+        displayUserInfo(msg.userInfo);
+      }
+      
+      if (msg.type === 'loginError') {
+        showView('login');
+        showError(msg.error);
+      }
+      
+      if (msg.type === 'authStateChanged') {
+        if (msg.authenticated) {
+          showView('authenticated');
+          displayUserInfo(msg.userInfo);
+        } else {
+          showView('login');
+        }
+      }
+      
+      if (msg.type === 'logoutError') {
+        showError(msg.error);
+      }
+    };
+    
+    // Check authentication state on load
+    parent.postMessage({ 
+      pluginMessage: { 
+        type: 'checkAuth' 
+      } 
+    }, '*');
+  </script>
+</body>
+</html>

@@ -38,7 +38,7 @@ app.use(passport.session());
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: process.env.CALLBACK_URL || 'http://localhost:3000/auth/google/callback'
+    callbackURL: process.env.CALLBACK_URL || 'https://figma-oauth-plugin-production.up.railway.app/auth/google/callback'
 },
     (accessToken, refreshToken, profile, done) => {
         // In production, you might want to save this to a database

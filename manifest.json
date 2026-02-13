@@ -10,8 +10,7 @@
       "https://accounts.google.com",
       "https://oauth2.googleapis.com",
       "https://www.googleapis.com",
-      "http://localhost:3000",
-      "https://your-backend.com"
+      "https://figma-oauth-plugin-production.up.railway.app"
     ]
   }
 }

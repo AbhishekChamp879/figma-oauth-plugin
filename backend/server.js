@@ -13,7 +13,7 @@ const sessions = new Map();
 
 // Middleware
 app.use(cors({
-    origin: ['http://localhost:3000', 'https://www.figma.com'],
+    origin: ['https://figma-oauth-plugin-production.up.railway.app', 'https://www.figma.com'],
     credentials: true
 }));
 

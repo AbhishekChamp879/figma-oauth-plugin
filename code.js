@@ -1,7 +1,7 @@
 // Main plugin code running in Figma's sandbox
 // This handles authentication state, polling, and token storage
 
-const BACKEND_URL = 'http://localhost:3000'; // Change to your production URL
+const BACKEND_URL = 'https://figma-oauth-plugin-production.up.railway.app'; // Change to your production URL
 const POLLING_INTERVAL = 3000; // 3 seconds
 const MAX_POLLING_TIME = 300000; // 5 minutes
 
